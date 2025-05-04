@@ -8,57 +8,85 @@
     body { font-family: sans-serif; padding: 20px; }
     #chat { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
     #message { width: 80%; }
+    #welcome { font-weight: bold; margin-bottom: 10px; }
+    #emoji-panel { display: none; margin-top: 10px; }
+    .emoji { cursor: pointer; font-size: 24px; margin: 5px; }
   </style>
 </head>
 <body>
   <h2>🗨️ WebSocket Chat</h2>
+  <div id="welcome"></div> <!-- Hoş geldin mesajı buraya gelecek -->
   <div id="chat"></div>
   <input type="text" id="message" placeholder="Mesaj yaz..." />
   <button onclick="sendMessage()">Gönder</button>
+  <button onclick="toggleEmojiPanel()">😊</button> <!-- Emoji panelini açma butonu -->
+  
+  <div id="emoji-panel">
+    <span class="emoji" onclick="insertEmoji('😊')">😊</span>
+    <span class="emoji" onclick="insertEmoji('😂')">😂</span>
+    <span class="emoji" onclick="insertEmoji('😢')">😢</span>
+    <span class="emoji" onclick="insertEmoji('😍')">😍</span>
+    <span class="emoji" onclick="insertEmoji('😎')">😎</span>
+    <span class="emoji" onclick="insertEmoji('😜')">😜</span>
+    <!-- Diğer emojiler buraya eklenebilir -->
+  </div>
 
   <script>
     const username = prompt("Kullanıcı adınızı girin:");
-
-    const socket = new WebSocket('ws://' + window.location.host);
-    socket.binaryType = "blob"; // Blob olarak veri almak için ayarladık
   
+    const socket = new WebSocket('ws://' + window.location.host);
     const chatDiv = document.getElementById('chat');
     const messageInput = document.getElementById('message');
+    const welcomeDiv = document.getElementById('welcome');
+  
+    // Hoş geldin mesajı
+    welcomeDiv.textContent = `Hoş geldin, ${username}!`;
 
-    // Gelen mesajları al
+    // Gelen mesajı Blob olarak al ve metne çevir
     socket.addEventListener('message', async function (event) {
-      const text = await event.data.text(); // .text() ile Blob'dan metne çevir
+      const text = typeof event.data === 'string'
+        ? event.data
+        : await event.data.text(); // .text() ile Blob'dan string'e
+  
+      // Zaman damgası ekleme
+      const timestamp = new Date().toLocaleTimeString(); // Saat bilgisini al
+  
       const p = document.createElement('p');
-      p.textContent = '💬 ' + text;
+      p.textContent = `[${timestamp}] 💬 ${text}`;
       chatDiv.appendChild(p);
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
-
-    // Mesaj gönderme fonksiyonu
+  
     function sendMessage() {
       const msg = messageInput.value;
       if (msg.trim() !== '') {
-        // Kullanıcı adıyla mesajı birleştir
         const fullMessage = `${username}: ${msg}`;
-        
-        // Mesajı gönder
+  
+        // Zaman damgası ekleme
+        const timestamp = new Date().toLocaleTimeString();
+  
         socket.send(fullMessage);
-
-        // Mesajı ekrana yaz
+  
         const p = document.createElement('p');
-        p.textContent = '🧑‍💻 ' + fullMessage;
+        p.textContent = `[${timestamp}] 🧑‍💻 ${fullMessage}`;
         chatDiv.appendChild(p);
         chatDiv.scrollTop = chatDiv.scrollHeight;
-        
-        // Mesaj kutusunu temizle
         messageInput.value = '';
       }
     }
-
-    // Enter tuşuna basıldığında mesaj gönder
+  
     messageInput.addEventListener('keypress', function (e) {
       if (e.key === 'Enter') sendMessage();
     });
-  </script>  
+
+    function toggleEmojiPanel() {
+      const panel = document.getElementById('emoji-panel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function insertEmoji(emoji) {
+      messageInput.value += emoji;  // Emojiyi mesaj kutusuna ekler
+    }
+  </script>
 </body>
 </html>

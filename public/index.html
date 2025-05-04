@@ -17,37 +17,48 @@
   <button onclick="sendMessage()">Gönder</button>
 
   <script>
+    const username = prompt("Kullanıcı adınızı girin:");
+
     const socket = new WebSocket('ws://' + window.location.host);
+    socket.binaryType = "blob"; // Blob olarak veri almak için ayarladık
+  
     const chatDiv = document.getElementById('chat');
     const messageInput = document.getElementById('message');
 
-    // Gelen mesajı Blob olarak al ve metne çevir
+    // Gelen mesajları al
     socket.addEventListener('message', async function (event) {
-      const text = typeof event.data === 'string'
-        ? event.data
-        : await event.data.text(); // .text() ile Blob'dan string'e
-
+      const text = await event.data.text(); // .text() ile Blob'dan metne çevir
       const p = document.createElement('p');
       p.textContent = '💬 ' + text;
       chatDiv.appendChild(p);
       chatDiv.scrollTop = chatDiv.scrollHeight;
     });
 
+    // Mesaj gönderme fonksiyonu
     function sendMessage() {
       const msg = messageInput.value;
       if (msg.trim() !== '') {
-        socket.send(msg);
+        // Kullanıcı adıyla mesajı birleştir
+        const fullMessage = `${username}: ${msg}`;
+        
+        // Mesajı gönder
+        socket.send(fullMessage);
+
+        // Mesajı ekrana yaz
         const p = document.createElement('p');
-        p.textContent = '🧑‍💻 Sen: ' + msg;
+        p.textContent = '🧑‍💻 ' + fullMessage;
         chatDiv.appendChild(p);
         chatDiv.scrollTop = chatDiv.scrollHeight;
+        
+        // Mesaj kutusunu temizle
         messageInput.value = '';
       }
     }
 
+    // Enter tuşuna basıldığında mesaj gönder
     messageInput.addEventListener('keypress', function (e) {
       if (e.key === 'Enter') sendMessage();
     });
-  </script>
+  </script>  
 </body>
 </html>

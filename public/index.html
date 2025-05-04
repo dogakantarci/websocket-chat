@@ -1,0 +1,53 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebSocket Chat</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #chat { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    #message { width: 80%; }
+  </style>
+</head>
+<body>
+  <h2>🗨️ WebSocket Chat</h2>
+  <div id="chat"></div>
+  <input type="text" id="message" placeholder="Mesaj yaz..." />
+  <button onclick="sendMessage()">Gönder</button>
+
+  <script>
+    const socket = new WebSocket('ws://' + window.location.host);
+    const chatDiv = document.getElementById('chat');
+    const messageInput = document.getElementById('message');
+
+    // Gelen mesajı Blob olarak al ve metne çevir
+    socket.addEventListener('message', async function (event) {
+      const text = typeof event.data === 'string'
+        ? event.data
+        : await event.data.text(); // .text() ile Blob'dan string'e
+
+      const p = document.createElement('p');
+      p.textContent = '💬 ' + text;
+      chatDiv.appendChild(p);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+
+    function sendMessage() {
+      const msg = messageInput.value;
+      if (msg.trim() !== '') {
+        socket.send(msg);
+        const p = document.createElement('p');
+        p.textContent = '🧑‍💻 Sen: ' + msg;
+        chatDiv.appendChild(p);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+        messageInput.value = '';
+      }
+    }
+
+    messageInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

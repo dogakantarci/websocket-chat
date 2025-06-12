@@ -1,39 +1,75 @@
-// server.js
+const express = require('express');
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 const WebSocket = require('ws');
 
-// Basit bir HTTP sunucusu (index.html servisi için)
-const server = http.createServer((req, res) => {
-  if (req.url === '/') {
-    const filePath = path.join(__dirname, 'public', 'index.html');
-    const fileStream = fs.createReadStream(filePath);
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    fileStream.pipe(res);
-  }
-});
-
-// WebSocket sunucusunu HTTP sunucusuna bağlıyoruz
+const app = express();
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', (ws) => {
-  console.log('Bir kullanıcı bağlandı.');
+app.use(express.static('public'));  // 'public' klasöründeki dosyaları servis eder
 
-  ws.on('message', (message) => {
-    console.log(`Gelen mesaj: ${message}`);
+const users = new Map();
 
-    // Diğer istemcilere gönder
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+function broadcastUserList() {
+  const userList = Array.from(users.keys());
+  const message = JSON.stringify({
+    type: 'userList',
+    users: userList,
   });
 
-  ws.send('Sohbete hoş geldin!');
+  for (const ws of users.values()) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(message);
+    }
+  }
+}
+
+wss.on('connection', (ws) => {
+  let currentUsername = null;
+
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+
+      switch (data.type) {
+        case 'register':
+          if (typeof data.username === 'string' && data.username.trim()) {
+            currentUsername = data.username.trim();
+            users.set(currentUsername, ws);
+            console.log(`📥 ${currentUsername} bağlandı.`);
+            broadcastUserList();
+          }
+          break;
+
+        case 'privateMessage':
+          const { to, from, message: msg } = data;
+          if (to && users.has(to) && users.get(to).readyState === WebSocket.OPEN) {
+            users.get(to).send(JSON.stringify({
+              type: 'privateMessage',
+              from,
+              message: msg,
+            }));
+          }
+          break;
+
+        default:
+          console.log('Bilinmeyen mesaj türü:', data.type);
+      }
+    } catch (err) {
+      console.error('Mesaj işlenirken hata:', err);
+    }
+  });
+
+  ws.on('close', () => {
+    if (currentUsername) {
+      users.delete(currentUsername);
+      console.log(`📤 ${currentUsername} ayrıldı.`);
+      broadcastUserList();
+    }
+  });
 });
 
-server.listen(3000, () => {
-  console.log('Sunucu çalışıyor: http://localhost:3000');
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Sunucu ${PORT} portunda çalışıyor...`);
 });

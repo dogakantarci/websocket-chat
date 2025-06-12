@@ -1,92 +1,396 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <title>WebSocket Chat</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #chat { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-    #message { width: 80%; }
-    #welcome { font-weight: bold; margin-bottom: 10px; }
-    #emoji-panel { display: none; margin-top: 10px; }
-    .emoji { cursor: pointer; font-size: 24px; margin: 5px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9fafb;
+      color: #374151;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #2563eb;
+      text-align: center;
+      margin-top: 0;
+    }
+
+    #container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+      flex: 1;
+      min-height: 0; /* Flexbox için önemli */
+    }
+
+    #left-panel {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-sizing: border-box;
+      min-height: 0; /* Flexbox için önemli */
+    }
+
+    #welcome {
+      font-size: 20px;
+      color: #2563eb;
+      font-weight: 600;
+      margin-bottom: 12px;
+      user-select: none;
+      text-align: center;
+      flex-shrink: 0; /* Sabit yükseklik */
+    }
+
+    #chat {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 15px;
+      overflow-y: auto;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.05);
+      font-size: 14px;
+      margin-bottom: 12px; /* Alt kısım ile arasında boşluk */
+      min-height: 0; /* Flexbox için önemli */
+    }
+
+    #chat p {
+      margin: 5px 0;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: #e0e7ff;
+      color: #1e40af;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    #chat p.self {
+      background: #d1fae5;
+      color: #065f46;
+      margin-left: auto;
+    }
+
+    #notify {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #22c55e;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      box-shadow: 0 4px 12px rgb(34 197 94 / 0.5);
+      font-weight: 600;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 1000;
+    }
+
+    #notify.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0; /* Sabit yükseklik */
+      margin-bottom: 10px;
+    }
+
+    #controls input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      min-width: 120px; /* Minimum genişlik */
+    }
+
+    #controls button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+      flex-shrink: 0; /* Butonlar küçülmesin */
+    }
+
+    #controls button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #emoji-panel {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 10px 5px;
+      border-radius: 8px;
+      background-color: #e0e7ff;
+      user-select: none;
+      flex-shrink: 0; /* Sabit yükseklik */
+    }
+
+    .emoji {
+      cursor: pointer;
+      font-size: 28px;
+      user-select: none;
+      transition: transform 0.2s ease;
+    }
+
+    .emoji:hover {
+      transform: scale(1.3);
+    }
+
+    #right-panel {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.05);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      user-select: none;
+      min-height: 0; /* Flexbox için önemli */
+    }
+
+    #right-panel h3 {
+      margin-top: 0;
+      color: #2563eb;
+      margin-bottom: 12px;
+      text-align: center;
+      flex-shrink: 0; /* Sabit yükseklik */
+    }
+
+    #online-users {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0; /* Flexbox için önemli */
+    }
+
+    #online-users p {
+      padding: 6px 8px;
+      margin: 4px 0;
+      background: #f3f4f6;
+      border-radius: 6px;
+      color: #374151;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    #online-users p:hover:not(.self) {
+      background: #e5e7eb;
+    }
+
+    #online-users p.self {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .online-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #22c55e;
+      border-radius: 50%;
+    }
+
+    /* Responsive düzenlemeler */
+    @media (max-height: 600px) {
+      body {
+        padding: 10px;
+      }
+      
+      h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+      
+      #welcome {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      
+      #chat {
+        padding: 10px;
+      }
+      
+      #controls input[type="text"], #controls button {
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
   <h2>🗨️ WebSocket Chat</h2>
-  <div id="welcome"></div> <!-- Hoş geldin mesajı buraya gelecek -->
-  <div id="chat"></div>
-  <input type="text" id="message" placeholder="Mesaj yaz..." />
-  <button onclick="sendMessage()">Gönder</button>
-  <button onclick="toggleEmojiPanel()">😊</button> <!-- Emoji panelini açma butonu -->
-  
-  <div id="emoji-panel">
-    <span class="emoji" onclick="insertEmoji('😊')">😊</span>
-    <span class="emoji" onclick="insertEmoji('😂')">😂</span>
-    <span class="emoji" onclick="insertEmoji('😢')">😢</span>
-    <span class="emoji" onclick="insertEmoji('😍')">😍</span>
-    <span class="emoji" onclick="insertEmoji('😎')">😎</span>
-    <span class="emoji" onclick="insertEmoji('😜')">😜</span>
-    <!-- Diğer emojiler buraya eklenebilir -->
+  <div id="container">
+    <div id="left-panel">
+      <div id="welcome"></div>
+      <div id="chat"></div>
+      <div id="notify">✅ Mesaj gönderildi!</div>
+
+      <div id="controls">
+        <input type="text" id="recipient" placeholder="Mesaj gönderilecek kişi (kullanıcı adı)" />
+        <input type="text" id="message" placeholder="Mesajınızı yazın..." autocomplete="off" />
+        <button onclick="sendMessage()">Gönder</button>
+        <button onclick="toggleEmojiPanel()">😊</button>
+      </div>
+
+      <div id="emoji-panel" style="display:none;">
+        <span class="emoji" onclick="insertEmoji('😊')">😊</span>
+        <span class="emoji" onclick="insertEmoji('😂')">😂</span>
+        <span class="emoji" onclick="insertEmoji('😢')">😢</span>
+        <span class="emoji" onclick="insertEmoji('😍')">😍</span>
+        <span class="emoji" onclick="insertEmoji('😎')">😎</span>
+        <span class="emoji" onclick="insertEmoji('❤️')">❤️</span>
+      </div>
+    </div>
+
+    <div id="right-panel">
+      <h3>🟢 Çevrimiçi Kullanıcılar</h3>
+      <div id="online-users"></div>
+    </div>
   </div>
 
   <script>
     const username = prompt("Kullanıcı adınızı girin:");
-  
-    const socket = new WebSocket('ws://' + window.location.host);
-    const chatDiv = document.getElementById('chat');
-    const messageInput = document.getElementById('message');
-    const welcomeDiv = document.getElementById('welcome');
-  
-    // Hoş geldin mesajı
-    welcomeDiv.textContent = `Hoş geldin, ${username}!`;
-
-    // Gelen mesajı Blob olarak al ve metne çevir
-    socket.addEventListener('message', async function (event) {
-      const text = typeof event.data === 'string'
-        ? event.data
-        : await event.data.text(); // .text() ile Blob'dan string'e
-  
-      // Zaman damgası ekleme
-      const timestamp = new Date().toLocaleTimeString(); // Saat bilgisini al
-  
-      const p = document.createElement('p');
-      p.textContent = `[${timestamp}] 💬 ${text}`;
-      chatDiv.appendChild(p);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    });
-  
-    function sendMessage() {
-      const msg = messageInput.value;
-      if (msg.trim() !== '') {
-        const fullMessage = `${username}: ${msg}`;
-  
-        // Zaman damgası ekleme
-        const timestamp = new Date().toLocaleTimeString();
-  
-        socket.send(fullMessage);
-  
-        const p = document.createElement('p');
-        p.textContent = `[${timestamp}] 🧑‍💻 ${fullMessage}`;
-        chatDiv.appendChild(p);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-        messageInput.value = '';
-      }
+    if (!username || username.trim() === '') {
+      alert("Kullanıcı adı boş olamaz! Sayfa yenileniyor.");
+      location.reload();
     }
-  
-    messageInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') sendMessage();
-    });
+
+    const ws = new WebSocket(`ws://${window.location.host}`);
+
+    const chat = document.getElementById('chat');
+    const recipientInput = document.getElementById('recipient');
+    const messageInput = document.getElementById('message');
+    const welcome = document.getElementById('welcome');
+    const notify = document.getElementById('notify');
+    const emojiPanel = document.getElementById('emoji-panel');
+    const onlineUsersDiv = document.getElementById('online-users');
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'register', username }));
+      welcome.innerHTML = `👋 Hoş geldin, <strong>${username}</strong>!`;
+    };
+
+    ws.onmessage = (event) => {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        addChatMessage(event.data);
+        return;
+      }
+
+      if (data.type === 'userList') {
+        updateOnlineUsers(data.users);
+      } else if (data.type === 'privateMessage') {
+        const { from, message } = data;
+        const time = new Date().toLocaleTimeString();
+        addChatMessage(`[${time}] 💬 ${from} → ${username}: ${message}`);
+      }
+    };
+
+    function addChatMessage(msg, self = false) {
+      const p = document.createElement('p');
+      p.textContent = msg;
+      if (self) p.classList.add('self');
+      chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function sendMessage() {
+      const msg = messageInput.value.trim();
+      const to = recipientInput.value.trim();
+
+      if (!msg) {
+        alert("Mesaj boş olamaz!");
+        return;
+      }
+      if (!to) {
+        alert("Mesaj göndermek için kullanıcı adı giriniz!");
+        return;
+      }
+      ws.send(JSON.stringify({
+        type: 'privateMessage',
+        from: username,
+        to,
+        message: msg
+      }));
+
+      const time = new Date().toLocaleTimeString();
+      addChatMessage(`[${time}] Sen → ${to}: ${msg}`, true);
+      messageInput.value = '';
+      showNotify();
+    }
+
+    function showNotify() {
+      notify.classList.add('show');
+      setTimeout(() => notify.classList.remove('show'), 2000);
+    }
 
     function toggleEmojiPanel() {
-      const panel = document.getElementById('emoji-panel');
-      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+      emojiPanel.style.display = emojiPanel.style.display === 'none' ? 'flex' : 'none';
     }
 
     function insertEmoji(emoji) {
-      messageInput.value += emoji;  // Emojiyi mesaj kutusuna ekler
+      messageInput.value += emoji;
+      messageInput.focus();
     }
+
+    function updateOnlineUsers(users) {
+      onlineUsersDiv.innerHTML = '';
+      users.forEach(user => {
+        const p = document.createElement('p');
+        p.textContent = user;
+        if (user === username) {
+          p.classList.add('self');
+          p.textContent += " (Sen)";
+        } else {
+          // Diğer kullanıcılara tıklama özelliği ekle
+          p.addEventListener('click', () => {
+            recipientInput.value = user;
+            messageInput.focus(); // Mesaj alanına odaklan
+          });
+        }
+        const dot = document.createElement('span');
+        dot.classList.add('online-dot');
+        p.prepend(dot);
+        onlineUsersDiv.appendChild(p);
+      });
+    }
+
+    // Enter tuşu ile mesaj gönderme
+    messageInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
   </script>
 </body>
 </html>

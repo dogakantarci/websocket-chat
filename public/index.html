@@ -31,7 +31,7 @@
       width: 100%;
       max-width: 900px;
       flex: 1;
-      min-height: 0; /* Flexbox için önemli */
+      min-height: 0;
     }
 
     #left-panel {
@@ -40,7 +40,7 @@
       flex-direction: column;
       height: 100%;
       box-sizing: border-box;
-      min-height: 0; /* Flexbox için önemli */
+      min-height: 0;
     }
 
     #welcome {
@@ -50,7 +50,7 @@
       margin-bottom: 12px;
       user-select: none;
       text-align: center;
-      flex-shrink: 0; /* Sabit yükseklik */
+      flex-shrink: 0;
     }
 
     #chat {
@@ -62,8 +62,8 @@
       background: #ffffff;
       box-shadow: 0 2px 8px rgb(0 0 0 / 0.05);
       font-size: 14px;
-      margin-bottom: 12px; /* Alt kısım ile arasında boşluk */
-      min-height: 0; /* Flexbox için önemli */
+      margin-bottom: 12px;
+      min-height: 0;
     }
 
     #chat p {
@@ -80,6 +80,23 @@
       background: #d1fae5;
       color: #065f46;
       margin-left: auto;
+    }
+
+    #chat p.ai {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      max-width: 80%;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    #chat p.ai::before {
+      content: "🤖";
+      position: absolute;
+      left: -25px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
     }
 
     #notify {
@@ -108,7 +125,7 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      flex-shrink: 0; /* Sabit yükseklik */
+      flex-shrink: 0;
       margin-bottom: 10px;
     }
 
@@ -118,7 +135,7 @@
       border: 1px solid #d1d5db;
       border-radius: 8px;
       font-size: 16px;
-      min-width: 120px; /* Minimum genişlik */
+      min-width: 120px;
     }
 
     #controls button {
@@ -131,11 +148,25 @@
       font-weight: 600;
       font-size: 16px;
       transition: background-color 0.3s ease;
-      flex-shrink: 0; /* Butonlar küçülmesin */
+      flex-shrink: 0;
     }
 
     #controls button:hover {
       background-color: #1d4ed8;
+    }
+
+    #ai-quick-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+    }
+
+    #ai-quick-button:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    }
+
+    #ai-quick-button::before {
+      content: "🤖";
+      margin-right: 5px;
     }
 
     #emoji-panel {
@@ -146,7 +177,7 @@
       border-radius: 8px;
       background-color: #e0e7ff;
       user-select: none;
-      flex-shrink: 0; /* Sabit yükseklik */
+      flex-shrink: 0;
     }
 
     .emoji {
@@ -171,7 +202,7 @@
       flex-direction: column;
       font-size: 14px;
       user-select: none;
-      min-height: 0; /* Flexbox için önemli */
+      min-height: 0;
     }
 
     #right-panel h3 {
@@ -179,13 +210,13 @@
       color: #2563eb;
       margin-bottom: 12px;
       text-align: center;
-      flex-shrink: 0; /* Sabit yükseklik */
+      flex-shrink: 0;
     }
 
     #online-users {
       flex: 1;
       overflow-y: auto;
-      min-height: 0; /* Flexbox için önemli */
+      min-height: 0;
     }
 
     #online-users p {
@@ -202,7 +233,7 @@
       transition: background-color 0.2s ease;
     }
 
-    #online-users p:hover:not(.self) {
+    #online-users p:hover:not(.self):not(.ai) {
       background: #e5e7eb;
     }
 
@@ -211,10 +242,27 @@
       color: #065f46;
     }
 
+    #online-users p.ai {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      position: relative;
+    }
+
+    #online-users p.ai:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    }
+
     .online-dot {
       width: 10px;
       height: 10px;
       background-color: #22c55e;
+      border-radius: 50%;
+    }
+
+    .ai-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #fbbf24;
       border-radius: 50%;
     }
 
@@ -257,6 +305,7 @@
         <input type="text" id="recipient" placeholder="Mesaj gönderilecek kişi (kullanıcı adı)" />
         <input type="text" id="message" placeholder="Mesajınızı yazın..." autocomplete="off" />
         <button onclick="sendMessage()">Gönder</button>
+        <button id="ai-quick-button" onclick="quickAIChat()">AI ile Sohbet</button>
         <button onclick="toggleEmojiPanel()">😊</button>
       </div>
 
@@ -284,6 +333,7 @@
     }
 
     const ws = new WebSocket(`ws://${window.location.host}`);
+    const AI_USERNAME = 'AI Assistant';
 
     const chat = document.getElementById('chat');
     const recipientInput = document.getElementById('recipient');
@@ -295,7 +345,7 @@
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: 'register', username }));
-      welcome.innerHTML = `👋 Hoş geldin, <strong>${username}</strong>!`;
+      welcome.innerHTML = `👋 Hoş geldin, <strong>${username}</strong>! AI ile sohbet edebilirsin! 🤖`;
     };
 
     ws.onmessage = (event) => {
@@ -312,14 +362,16 @@
       } else if (data.type === 'privateMessage') {
         const { from, message } = data;
         const time = new Date().toLocaleTimeString();
-        addChatMessage(`[${time}] 💬 ${from} → ${username}: ${message}`);
+        const isFromAI = from === AI_USERNAME;
+        addChatMessage(`[${time}] ${isFromAI ? '🤖' : '💬'} ${from} → ${username}: ${message}`, false, isFromAI);
       }
     };
 
-    function addChatMessage(msg, self = false) {
+    function addChatMessage(msg, self = false, isAI = false) {
       const p = document.createElement('p');
       p.textContent = msg;
       if (self) p.classList.add('self');
+      if (isAI) p.classList.add('ai');
       chat.appendChild(p);
       chat.scrollTop = chat.scrollHeight;
     }
@@ -336,6 +388,7 @@
         alert("Mesaj göndermek için kullanıcı adı giriniz!");
         return;
       }
+      
       ws.send(JSON.stringify({
         type: 'privateMessage',
         from: username,
@@ -344,9 +397,37 @@
       }));
 
       const time = new Date().toLocaleTimeString();
+      const isToAI = to === AI_USERNAME;
       addChatMessage(`[${time}] Sen → ${to}: ${msg}`, true);
       messageInput.value = '';
       showNotify();
+
+      // AI'a mesaj gönderildiyse typing indicator göster
+      if (isToAI) {
+        showTypingIndicator();
+      }
+    }
+
+    function quickAIChat() {
+      recipientInput.value = AI_USERNAME;
+      messageInput.focus();
+    }
+
+    function showTypingIndicator() {
+      const typingMsg = document.createElement('p');
+      typingMsg.classList.add('ai');
+      typingMsg.textContent = '🤖 AI Assistant yazıyor...';
+      typingMsg.id = 'typing-indicator';
+      chat.appendChild(typingMsg);
+      chat.scrollTop = chat.scrollHeight;
+
+      // 3 saniye sonra typing indicator'ı kaldır (eğer hala varsa)
+      setTimeout(() => {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) {
+          indicator.remove();
+        }
+      }, 10000);
     }
 
     function showNotify() {
@@ -368,21 +449,38 @@
       users.forEach(user => {
         const p = document.createElement('p');
         p.textContent = user;
+        
         if (user === username) {
           p.classList.add('self');
           p.textContent += " (Sen)";
-        } else {
-          // Diğer kullanıcılara tıklama özelliği ekle
+        } else if (user === AI_USERNAME) {
+          p.classList.add('ai');
           p.addEventListener('click', () => {
             recipientInput.value = user;
-            messageInput.focus(); // Mesaj alanına odaklan
+            messageInput.focus();
+          });
+        } else {
+          p.addEventListener('click', () => {
+            recipientInput.value = user;
+            messageInput.focus();
           });
         }
+        
         const dot = document.createElement('span');
-        dot.classList.add('online-dot');
+        if (user === AI_USERNAME) {
+          dot.classList.add('ai-dot');
+        } else {
+          dot.classList.add('online-dot');
+        }
         p.prepend(dot);
         onlineUsersDiv.appendChild(p);
       });
+
+      // Typing indicator'ı kaldır (AI cevap verdiğinde)
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) {
+        indicator.remove();
+      }
     }
 
     // Enter tuşu ile mesaj gönderme
